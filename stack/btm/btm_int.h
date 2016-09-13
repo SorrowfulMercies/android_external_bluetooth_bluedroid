@@ -42,7 +42,9 @@
 #endif
 #endif
 
+#if BLE_INCLUDED == TRUE
 tBTM_BLE_MULTI_ADV_CB  btm_multi_adv_cb;
+#endif
 
 #if BTM_MAX_LOC_BD_NAME_LEN > 0
 typedef char tBTM_LOC_BD_NAME[BTM_MAX_LOC_BD_NAME_LEN + 1];
@@ -908,11 +910,6 @@ typedef struct
     BOOLEAN                  security_mode_changed;  /* mode changed during bonding */
     BOOLEAN                  pin_type_changed;       /* pin type changed during bonding */
     BOOLEAN                  sec_req_pending;       /*   TRUE if a request is pending */
-// btla-specific ++
-#ifdef PORCHE_PAIRING_CONFLICT
-    UINT8                    pin_code_len_saved;     /* for legacy devices */
-#endif
-// btla-specific --
 
     UINT8                    pin_code_len;  /* for legacy devices */
     PIN_CODE                 pin_code;      /* for legacy devices */
@@ -1216,4 +1213,3 @@ extern void  btm_sec_clr_temp_auth_service (BD_ADDR bda);
 #endif
 
 #endif
-
