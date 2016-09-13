@@ -51,6 +51,7 @@
 #include "bt_utils.h"
 #include "l2cdefs.h"
 #include "l2c_api.h"
+#include "btif_storage.h"
 
 #if TEST_APP_INTERFACE == TRUE
 #include <bt_testapp.h>
@@ -99,6 +100,7 @@ typedef struct
 ************************************************************************************/
 
 bt_callbacks_t *bt_hal_cbacks = NULL;
+bool restricted_mode = FALSE;
 
 /** Operating System specific callouts for resource management */
 bt_os_callouts_t *bt_os_callouts = NULL;
@@ -205,9 +207,10 @@ static int initq(bt_callbacks_t* callbacks)
 }
 
 
-static int enable( void )
-{
+static int enable(bool start_restricted) {
     ALOGI("enable");
+
+    restricted_mode = start_restricted;
 
     /* sanity check */
     if (interface_ready() == FALSE)
@@ -236,6 +239,10 @@ static void cleanup( void )
     /* hal callbacks reset upon shutdown complete callback */
 
     return;
+}
+
+bool is_restricted_mode() {
+  return restricted_mode;
 }
 
 static void ssrcleanup(void)
@@ -353,6 +360,9 @@ static int cancel_bond(const bt_bdaddr_t *bd_addr)
 
 static int remove_bond(const bt_bdaddr_t *bd_addr)
 {
+    if (is_restricted_mode() && !btif_storage_is_restricted_device(bd_addr))
+        return BT_STATUS_SUCCESS;
+
     /* sanity check */
     if (interface_ready() == FALSE)
         return BT_STATUS_NOT_READY;
@@ -544,6 +554,7 @@ static void bt_le_lpp_rssi_monitor_upstream_evt(uint16_t event, char* p_param)
     case BT_LE_LPP_RSSI_MONITOR_CMD_CPL_EVT:
         switch(p_cb->content.cmd_cpl_evt.subcmd)
         {
+#if BLE_INCLUDED == TRUE
         case WRITE_RSSI_MONITOR_THRESHOLD:
             HAL_CBACK(bt_hal_cbacks, le_lpp_write_rssi_thresh_cb,
                       &p_cb->remote_bda, p_cb->content.cmd_cpl_evt.status);
@@ -561,6 +572,7 @@ static void bt_le_lpp_rssi_monitor_upstream_evt(uint16_t event, char* p_param)
                       &p_cb->remote_bda, p_cb->content.cmd_cpl_evt.detail.enable,
                       p_cb->content.cmd_cpl_evt.status);
             break;
+#endif
         default:
             break;
         }
@@ -628,6 +640,7 @@ static void bt_le_handle_lpp_monitor_rssi(uint16_t event, char *p_param)
     switch(event)
     {
     case BT_LE_LPP_WRITE_RSSI_THRESH:
+#if BLE_INCLUDED == TRUE
         ALOGD("%s write rssi thrshold ", __FUNCTION__);
         status = BTM_Write_Rssi_Monitor_Threshold(p_cb->remote_bda.address, p_cb->min_thresh, p_cb->max_thresh);
 
@@ -637,8 +650,10 @@ static void bt_le_handle_lpp_monitor_rssi(uint16_t event, char *p_param)
             error.subcmd = WRITE_RSSI_MONITOR_THRESHOLD;
             error.status = 1; /* 0 indicate success*/
         }
+#endif
         break;
     case BT_LE_LPP_MONITOR_RSSI_START:
+#if BLE_INCLUDED == TRUE
         ALOGD("%s starts monitoring rssi", __FUNCTION__);
         status = BTM_Enable_Rssi_Monitor(p_cb->remote_bda.address, 1);
 
@@ -649,8 +664,10 @@ static void bt_le_handle_lpp_monitor_rssi(uint16_t event, char *p_param)
             error.detail.enable = 1;
             error.status = 1; /* 0 indicate success*/
         }
+#endif
         break;
     case BT_LE_LPP_MONITOR_RSSI_STOP:
+#if BLE_INCLUDED == TRUE
         ALOGD("%s stop monitoring rssi", __FUNCTION__);
         status = BTM_Enable_Rssi_Monitor(p_cb->remote_bda.address, 0);
 
@@ -661,8 +678,10 @@ static void bt_le_handle_lpp_monitor_rssi(uint16_t event, char *p_param)
             error.detail.enable = 0;
             error.status = 1; /* 0 indicate success*/
         }
+#endif
         break;
     case BT_LE_LPP_READ_RSSI_THRESH:
+#if BLE_INCLUDED == TRUE
         ALOGD("%s read rssi threshold", __FUNCTION__);
         status = BTM_Read_Rssi_Monitor_Threshold(p_cb->remote_bda.address);
 
@@ -672,6 +691,7 @@ static void bt_le_handle_lpp_monitor_rssi(uint16_t event, char *p_param)
             error.subcmd = READ_RSSI_MONITOR_THRESHOLD;
             error.status = 1; /* 0 indicate success*/
         }
+#endif
         break;
     default:
         error.status = 1;
@@ -822,4 +842,3 @@ struct hw_module_t HAL_MODULE_INFO_SYM = {
     .author = "The Android Open Source Project",
     .methods = &bt_stack_module_methods
 };
-
