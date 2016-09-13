@@ -57,9 +57,11 @@ typedef struct
     BOOLEAN is_scan_rsp;
     UINT8 client_if;
     UINT16 service_uuid_len;
+#if BLE_INCLUDED == TRUE
     tBTA_BLE_AD_MASK mask;
     tBTA_BLE_ADV_DATA data;
     tBTA_BLE_ADV_PARAMS param;
+#endif
     TIMER_LIST_ENT tle_limited_timer;
     int timeout_s;
 }btgatt_multi_adv_inst_cb;
@@ -95,5 +97,3 @@ extern void btif_gattc_adv_data_packager(int client_if, bool set_scan_rsp,
 void btif_multi_adv_timer_ctrl(int client_if, TIMER_CBACK cb);
 void btif_gatt_adv_inst_cleanup(void);
 #endif
-
-
